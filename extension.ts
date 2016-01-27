@@ -64,6 +64,17 @@ export class OrgMode {
         // TODO: Update any summaries up-level and down-level.
     }
     
+    // Calculate and return indentation level of the line.  Used in traversing nested lists and locating parent item.
+    private getIndent(line: TextLine): number {
+        let re = new RegExp(`^(\\s*)\\S`);
+        let match = re.exec(line.text);
+        if (match) {
+            // TODO: Convert tabs to spaces?
+            return match[1].length;
+        }
+        return 0;
+    }
+    
     public expand() {
         let doc = this.editor.document;
         if (doc.languageId === 'orgmode') {
