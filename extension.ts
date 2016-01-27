@@ -93,6 +93,37 @@ export class OrgMode {
         return parent;
     }
     
+    // Find parent item by walking lines up to the start of the file looking for a smaller indentation.  Does not ignore blank lines (indentation 0).
+    private findChildren(line: TextLine): TextLine[] {
+        let children = new Array();
+        let lnum = line.lineNumber;
+        let indent = this.getIndent(line);
+        let child = null;
+        let cindent = indent;
+        let next_indent = 0;
+        while (lnum < this.doc.lineCount) {
+            lnum++;
+            child = this.doc.lineAt(lnum);
+            cindent = this.getIndent(child);
+            if (cindent <= indent) {
+                break;
+            }
+            if (next_indent < indent) {
+                next_indent = cindent;
+            }
+            // TODO: Handle weird indentation like this:
+            //     current
+            //         child 1
+            //       child 2
+            //         child 3
+            // Are all the above children considered siblings?
+            if (cindent <= next_indent) {
+                children.push(child);
+            }
+        }
+        return children;
+    }
+    
     public expand() {
         let doc = this.editor.document;
         if (doc.languageId === 'orgmode') {
