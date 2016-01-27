@@ -1,0 +1,55 @@
+{
+    "scopeName": "text.orgmode",
+    "name": "orgmode",
+    "comment": "OrgMode",
+    "fileTypes": [
+        "org",
+        "tasks"
+    ],
+    "patterns": [
+    {
+        "name": "orgmode.page",
+        "match": "^\\s*\\-{3} [^\\n]*"
+    },
+    {
+        "name": "orgmode.break",
+        "match": "^\\s*[~]+ [^\\n]*"
+    },
+    {
+        "name": "orgmode.headline",
+        "match": "^\\s*[*]+ [^\\[\\]:\\n]*"
+    },
+    {
+        "name": "orgmode.tack",
+        "match": "^\\s*\\- "
+    },
+    {
+        "name": "orgmode.follow_up",
+        "match": "^\\s*(\\->|=>) "
+    },
+    {
+        "name": "orgmode.checkbox",
+        "match": "(\\[[xX ]\\])\\s?"
+    },
+    {
+        "name": "orgmode.checkbox.summary",
+        "match": "(\\[\\d*[/]\\d*\\])"
+    },
+    {
+        "name": "orgmode.link",
+        "match": "\\[\\[(.+?)?\\]\\]"
+    },
+    {
+        "name": "orgmode.link.internal.number",
+        "match": "\\{(\\d+)\\}"
+    },
+    {
+        "name": "orgmode.link.internal.headline",
+        "match": "\\{\\{(.+?)\\}\\}"
+    },
+    {
+        "name": "orgmode.tags",
+        "match": "(^|\\s):[\\w\\d:]+:"
+    }
+  ]
+}

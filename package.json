@@ -1,0 +1,50 @@
+{
+	"name": "orgmode",
+	"version": "0.1.0",
+	"publisher": "Alexei Boukirev",
+	"engines": { 
+        "vscode": "0.10.x" 
+    },
+	"contributes": {
+		"languages": [{
+			"id": "orgmode",
+			"extensions": [ ".org", ".tasks" ],
+			"aliases": [ "OrgMode" ],
+			"configuration": "./orgmode.configuration.json"
+		}],
+		"grammars": [{
+			"language": "orgmode",
+			"scopeName": "text.orgmode",
+			"path": "./syntaxes/orgmode.json"
+		}],
+        "commands": [{
+            "command": "orgmode.navigate",
+            "title": "OrgMode Navigate"
+        },{
+            "command": "orgmode.expand",
+            "title": "OrgMode Expand"
+        }],
+        "keybindings": [{
+            "command": "orgmode.navigate",
+            "key": "enter",
+            "when": "editorTextFocus"
+        },{
+            "command": "orgmode.expand",
+            "key": "tab",
+            "when": "editorTextFocus"
+        }] 
+	},
+    "activationEvents": [
+        "onLanguage:orgmode"
+    ],
+    "main": "./out/extension",
+    "scripts": {
+        "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+        "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "^1.6.2",
+        "vscode": "0.10.x"
+    }
+}
