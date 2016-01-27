@@ -75,6 +75,24 @@ export class OrgMode {
         return 0;
     }
     
+    // Find parent item by walking lines up to the start of the file looking for a smaller indentation.  Does not ignore blank lines (indentation 0).
+    private findParent(line: TextLine): TextLine {
+        let lnum = line.lineNumber;
+        let indent = this.getIndent(line);
+        let parent = null;
+        let pindent = indent;
+        while (pindent >= indent) {
+            lnum--;
+            if (lnum <= 0) {
+                return null;
+            }
+            
+            parent = this.doc.lineAt(lnum);
+            pindent = this.getIndent(parent);
+        }
+        return parent;
+    }
+    
     public expand() {
         let doc = this.editor.document;
         if (doc.languageId === 'orgmode') {
