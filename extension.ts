@@ -1,4 +1,4 @@
-import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, Range, Position} from 'vscode';
+import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position} from 'vscode';
 
 export function activate(ctx: ExtensionContext) {
 
@@ -19,30 +19,16 @@ export function activate(ctx: ExtensionContext) {
 
 export class OrgMode {
     private editor = window.activeTextEditor;
+    private doc = this.editor.document;
 
     public navigate() {
-        let doc = this.editor.document;
         // TODO: Is language check even necessary if language is part of activation event for the extension?
-        if (doc.languageId === 'orgmode') {
+        if (this.doc.languageId === 'orgmode') {
             const selection = this.editor.selection;
-            let line = selection.start.line;
-            let text = doc.lineAt(line).text;
-            // Perform multiple `exec`s until no match or current position falls within matched sub-group.
-            // Important: keep global flag for multiple matches.  RegExp object will track position to search for the next match.
-            let re = new RegExp(`(\\[[xX ]\\])\\s?`, 'g');
-            let match = re.exec(text);
-            let range = null;
-            while (match !== null) {
-                range = new Range(new Position(line, match.index + 1), new Position(line, match.index + 2));
-                if (range.contains(selection)) {
-                    // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
-                    this.editor.edit((editBuilder) => {
-                        editBuilder.replace(range, match[1].startsWith('[ ]') ? 'X' : ' ');
-                    });
-                    // TODO: Update any summaries up-level. 
-                    return;
-                }
-                match = re.exec(text);
+            let checkbox = this.findCheckbox(this.doc.lineAt(selection.active.line), selection.active);
+            if (checkbox) {
+                this.toggleCheckbox(checkbox);
+                return;
             } 
             // TODO: Test for summary [/] element and calculate values.
             // TODO: Test for reference {} or {{}} element and navigate.
@@ -55,6 +41,27 @@ export class OrgMode {
                 editBuilder.insert(selection.active, '\n');
             });
         }
+    }
+    
+    // Find first checkbox pattern on the specified line.
+    // If not found or position is provided and does not end up on the found checkbox return null.
+    private findCheckbox(line: TextLine, position: Position): Range {
+        let re = new RegExp(`(\\[[xX ]\\])\\s?`);
+        let match = re.exec(line.text);
+        if (match) {
+            let range = new Range(new Position(line.lineNumber, match.index + 1), new Position(line.lineNumber, match.index + 2));
+            if (position && range.contains(position))
+                return range;
+        }
+        return null;
+    }
+    
+    // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
+    private toggleCheckbox(checkbox: Range) {
+        this.editor.edit((editBuilder) => {
+            editBuilder.replace(checkbox, (this.doc.getText(checkbox) == ' ') ? 'X' : ' ');
+        });
+        // TODO: Update any summaries up-level and down-level.
     }
     
     public expand() {
