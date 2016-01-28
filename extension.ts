@@ -25,13 +25,14 @@ export class OrgMode {
         // TODO: Is language check even necessary if language is part of activation event for the extension?
         if (this.doc.languageId === 'orgmode') {
             const selection = this.editor.selection;
-            let checkbox = this.findCheckbox(this.doc.lineAt(selection.active.line), selection.active);
+            let line = this.doc.lineAt(selection.active.line);
+            let checkbox = this.findCheckbox(line, selection.active);
             if (checkbox) {
-                this.toggleCheckbox(checkbox);
+                this.toggleCheckbox(checkbox, line, this.doc.getText(checkbox) == ' ');
                 return;
             } 
             // Test for summary [/] element and update it.
-            let summary = this.findSummary(this.doc.lineAt(selection.active.line), selection.active);
+            let summary = this.findSummary(line, selection.active);
             if (summary) {
                 // TODO: Walk immediate children, calculate total number and a number of checked items.
                 this.updateSummary(summary, 3, 12);
@@ -55,8 +56,10 @@ export class OrgMode {
         let re = new RegExp(`(\\[[xX ]\\])`);
         let match = re.exec(line.text);
         if (match) {
-            let range = new Range(new Position(line.lineNumber, match.index + 1), new Position(line.lineNumber, match.index + 2));
-            if (position && range.contains(position))
+            let range = new Range(line.lineNumber, match.index + 1, line.lineNumber, match.index + 2);
+            if (!position)
+                return range;
+            if (range.contains(position))
                 return range;
         }
         return null;
@@ -66,22 +69,32 @@ export class OrgMode {
         let re = new RegExp(`(\\[\\d*/\\d*\\])`);
         let match = re.exec(line.text);
         if (match) {
-            let range = new Range(new Position(line.lineNumber, match.index + 1), new Position(line.lineNumber, match.index + match[1].length - 1));
-            if (position && range.contains(position))
+            let range = new Range(line.lineNumber, match.index + 1, line.lineNumber, match.index + match[1].length - 1);
+            if (!position)
+                return range;
+            if (range.contains(position))
                 return range;
         }
         return null;
     }
     
     // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
-    private toggleCheckbox(checkbox: Range) {
+    private toggleCheckbox(checkbox: Range, line: TextLine, checked: boolean) {
+        if (!checkbox)
+            return;
         this.editor.edit((editBuilder) => {
-            editBuilder.replace(checkbox, (this.doc.getText(checkbox) == ' ') ? 'X' : ' ');
+            editBuilder.replace(checkbox, checked ? 'X' : ' ');
         });
-        // TODO: Update any summaries up-level and down-level.
+        let children = this.findChildren(line);
+        let child: TextLine = null;
+        for (child of children) {
+            this.toggleCheckbox(this.findCheckbox(child, null), child, checked);
+        }
     }
     
     private updateSummary(summary: Range, checked: number, total: number) {
+        if (!summary)
+            return;
         this.editor.edit((editBuilder) => {
             editBuilder.replace(summary, checked.toString() + '/' + total.toString());
         });
@@ -106,7 +119,7 @@ export class OrgMode {
         let pindent = indent;
         while (pindent >= indent) {
             lnum--;
-            if (lnum <= 0) {
+            if (lnum < 0) {
                 return null;
             }
             
@@ -118,20 +131,21 @@ export class OrgMode {
     
     // Find parent item by walking lines up to the start of the file looking for a smaller indentation.  Does not ignore blank lines (indentation 0).
     private findChildren(line: TextLine): TextLine[] {
-        let children = new Array();
+        let children: TextLine[] = [];
         let lnum = line.lineNumber;
+        let lmax = this.doc.lineCount - 1; 
         let indent = this.getIndent(line);
-        let child = null;
+        let child: TextLine = null;
         let cindent = indent;
         let next_indent = 0;
-        while (lnum < this.doc.lineCount) {
-            lnum++;
+        while (lnum < lmax) {
+            lnum ++;
             child = this.doc.lineAt(lnum);
             cindent = this.getIndent(child);
             if (cindent <= indent) {
                 break;
             }
-            if (next_indent < indent) {
+            if (next_indent < cindent) {
                 next_indent = cindent;
             }
             // TODO: Handle weird indentation like this:
