@@ -30,7 +30,13 @@ export class OrgMode {
                 this.toggleCheckbox(checkbox);
                 return;
             } 
-            // TODO: Test for summary [/] element and calculate values.
+            // Test for summary [/] element and update it.
+            let summary = this.findSummary(this.doc.lineAt(selection.active.line), selection.active);
+            if (summary) {
+                // TODO: Walk immediate children, calculate total number and a number of checked items.
+                this.updateSummary(summary, 3, 12);
+                return;
+            }
             // TODO: Test for reference {} or {{}} element and navigate.
             // TODO: Test for link element [[]] and open browser with the specified link.
 
@@ -46,10 +52,21 @@ export class OrgMode {
     // Find first checkbox pattern on the specified line.
     // If not found or position is provided and does not end up on the found checkbox return null.
     private findCheckbox(line: TextLine, position: Position): Range {
-        let re = new RegExp(`(\\[[xX ]\\])\\s?`);
+        let re = new RegExp(`(\\[[xX ]\\])`);
         let match = re.exec(line.text);
         if (match) {
             let range = new Range(new Position(line.lineNumber, match.index + 1), new Position(line.lineNumber, match.index + 2));
+            if (position && range.contains(position))
+                return range;
+        }
+        return null;
+    }
+    
+    private findSummary(line: TextLine, position: Position): Range {
+        let re = new RegExp(`(\\[\\d*/\\d*\\])`);
+        let match = re.exec(line.text);
+        if (match) {
+            let range = new Range(new Position(line.lineNumber, match.index + 1), new Position(line.lineNumber, match.index + match[1].length - 1));
             if (position && range.contains(position))
                 return range;
         }
@@ -62,6 +79,12 @@ export class OrgMode {
             editBuilder.replace(checkbox, (this.doc.getText(checkbox) == ' ') ? 'X' : ' ');
         });
         // TODO: Update any summaries up-level and down-level.
+    }
+    
+    private updateSummary(summary: Range, checked: number, total: number) {
+        this.editor.edit((editBuilder) => {
+            editBuilder.replace(summary, checked.toString() + '/' + total.toString());
+        });
     }
     
     // Calculate and return indentation level of the line.  Used in traversing nested lists and locating parent item.
