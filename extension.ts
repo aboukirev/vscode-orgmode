@@ -1,4 +1,4 @@
-import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position} from 'vscode';
+import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position, TextEditorEdit} from 'vscode';
 
 export function activate(ctx: ExtensionContext) {
 
@@ -17,9 +17,19 @@ export function activate(ctx: ExtensionContext) {
     ctx.subscriptions.push(orgmode);
 }
 
+// TODO: Investigate if Thenable<> is needed.
+// TODO: Construct interface for checkbox and summary and track range, line, and status in it for convenience.
+
+// Construct a list of edits for a single checkbox toggle then execute all of them at once.  It's fast and can be undone in one step. 
+interface IOrgmodeUpdate {
+    range: Range;
+    text: string;
+}
+
 export class OrgMode {
     private editor = window.activeTextEditor;
     private doc = this.editor.document;
+    private _updates: IOrgmodeUpdate[] = [];
 
     public navigate() {
         // TODO: Is language check even necessary if language is part of activation event for the extension?
@@ -28,7 +38,15 @@ export class OrgMode {
             let line = this.doc.lineAt(selection.active.line);
             let checkbox = this.findCheckbox(line, selection.active);
             if (checkbox) {
-                this.toggleCheckbox(checkbox, line, this.doc.getText(checkbox) == ' ');
+                let checked = this.doc.getText(checkbox) == ' ';
+                let func = this.toggleCheckbox;
+                this._updates = [];
+                this.toggleCheckbox(checkbox, line, checked);
+                let list = this._updates;
+                this.editor.edit(function(edit) {
+                    for (let upd of list)
+                        edit.replace(upd.range, upd.text);
+                });
                 return;
             } 
             // Test for summary [/] element and update it.
@@ -43,9 +61,9 @@ export class OrgMode {
 
             // Fallback to just editing text, i.e. process `enter` key.
             // TODO: Figure out keybinding and process the key depending on what default keybinding it has.
-            this.editor.edit((editBuilder) => {
+            this.editor.edit(function(edit) {
                 // The following will translate to proper line ending automatically.
-                editBuilder.insert(selection.active, '\n');
+                edit.insert(selection.active, '\n');
             });
         }
     }
@@ -82,9 +100,7 @@ export class OrgMode {
     private toggleCheckbox(checkbox: Range, line: TextLine, checked: boolean) {
         if (!checkbox)
             return;
-        this.editor.edit((editBuilder) => {
-            editBuilder.replace(checkbox, checked ? 'X' : ' ');
-        });
+        this._updates.push({ range: checkbox, text: (checked ? 'X' : ' ')});
         let children = this.findChildren(line);
         let child: TextLine = null;
         for (child of children) {
@@ -95,9 +111,7 @@ export class OrgMode {
     private updateSummary(summary: Range, checked: number, total: number) {
         if (!summary)
             return;
-        this.editor.edit((editBuilder) => {
-            editBuilder.replace(summary, checked.toString() + '/' + total.toString());
-        });
+        this._updates.push({ range: summary, text: (checked.toString() + '/' + total.toString())});
     }
     
     // Calculate and return indentation level of the line.  Used in traversing nested lists and locating parent item.
@@ -137,15 +151,15 @@ export class OrgMode {
         let indent = this.getIndent(line);
         let child: TextLine = null;
         let cindent = indent;
-        let next_indent = 0;
+        let next_indent = -1;
         while (lnum < lmax) {
-            lnum ++;
+            lnum++;
             child = this.doc.lineAt(lnum);
             cindent = this.getIndent(child);
             if (cindent <= indent) {
                 break;
             }
-            if (next_indent < cindent) {
+            if (next_indent < 0) {
                 next_indent = cindent;
             }
             // TODO: Handle weird indentation like this:
