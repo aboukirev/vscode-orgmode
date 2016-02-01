@@ -1,4 +1,4 @@
-import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position, TextEditorEdit} from 'vscode';
+import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position, Selection, TextEditorEdit} from 'vscode';
 
 export function activate(ctx: ExtensionContext) {
 
@@ -12,9 +12,6 @@ export function activate(ctx: ExtensionContext) {
     
     ctx.subscriptions.push(orgmode);
 }
-
-// TODO: Investigate if Thenable<> is needed.
-// TODO: Construct interface for checkbox and summary and track range, line, and status in it for convenience.
 
 // Construct a list of edits for a single checkbox toggle then execute all of them at once.  It's fast and can be undone in one step. 
 interface IOrgmodeUpdate {
@@ -33,42 +30,34 @@ export class OrgMode {
             const selection = this.editor.selection;
             let line = this.doc.lineAt(selection.active.line);
             let checkbox = this.findCheckbox(line, selection.active);
+            let summary = this.findSummary(line, selection.active);
+            this._updates = [];
             if (checkbox) {
                 let checked = this.doc.getText(checkbox) == ' ';
                 let func = this.toggleCheckbox;
-                this._updates = [];
                 this.toggleCheckbox(checkbox, line, checked);
                 let parent = this.findParent(line);
                 // Since the updates as a result of toggle have not happened yet in the editor, counting checked children is going to use old value of current checkbox.  Hence the adjustment.
-                // TODO: Consider a different approach later.  I don't want to commit toggle edits before updating summary because it will split edit into multiple operations thus requiring multiple undo's to rollback.
                 this.updateParent(parent, checked ? 1 : -1);
-                let list = this._updates;
-                this.editor.edit(function(edit) {
-                    for (let upd of list)
-                        edit.replace(upd.range, upd.text);
-                });
-                return;
-            } 
-            // Test for summary [/] element and update it.
-            let summary = this.findSummary(line, selection.active);
-            if (summary) {
-                this._updates = [];
+            } else if (summary) {
                 this.updateParent(line, 0);
-                let list = this._updates;
-                this.editor.edit(function(edit) {
-                    for (let upd of list)
-                        edit.replace(upd.range, upd.text);
-                });
-                return;
+            } else {
+                // Fallback to just editing text, i.e. process `enter` key.
+                // The following will translate to proper line ending automatically.
+                this._updates.push({ range: new Range(selection.active, selection.active), text: '\n' });
             }
+            
             // TODO: Test for reference {} or {{}} element and navigate.
             // TODO: Test for link element [[]] and open browser with the specified link.
-
-            // Fallback to just editing text, i.e. process `enter` key.
-            // TODO: Figure out keybinding and process the key depending on what default keybinding it has.
+            // Apply updates accumulated thus far.
+            let list = this._updates;
             this.editor.edit(function(edit) {
-                // The following will translate to proper line ending automatically.
-                edit.insert(selection.active, '\n');
+                for (let upd of list)
+                    edit.replace(upd.range, upd.text);
+            }).then(() => {
+                // Reset selection after applying operations.
+                let selection = new Selection(this.editor.selection.active, this.editor.selection.active);
+                this.editor.selections = [selection]; 
             });
         }
     }
@@ -123,8 +112,14 @@ export class OrgMode {
         for (child of children) {
             this.toggleCheckbox(this.findCheckbox(child, null), child, check);
         }
+        // If there is a summary on this line, update it to either [0/0] or [total/total] depending on value of 'check'.
+        let total = check ? children.length : 0;
+        let summary = this.findSummary(line, null);
+        this.updateSummary(summary, total, total);
     }
     
+    // Update checkbox and summary on this line.  Adjust checked items count with an additional offset.  That accounts for 
+    // a checkbox that has just been toggled but text in the editor has not been updated yet.
     private updateParent(line: TextLine, adjust: number) {
         if (!line) {
             return;
