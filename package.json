@@ -28,10 +28,6 @@
             "command": "orgmode.navigate",
             "key": "enter",
             "when": "editorTextFocus"
-        },{
-            "command": "orgmode.expand",
-            "key": "tab",
-            "when": "editorTextFocus"
         }] 
 	},
     "activationEvents": [

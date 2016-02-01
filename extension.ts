@@ -9,10 +9,6 @@ export function activate(ctx: ExtensionContext) {
 	ctx.subscriptions.push(commands.registerCommand('orgmode.navigate', () => {
 		orgmode.navigate();
 	}));
-
-	ctx.subscriptions.push(commands.registerCommand('orgmode.expand', () => {
-		orgmode.expand();
-	}));
     
     ctx.subscriptions.push(orgmode);
 }
@@ -217,13 +213,6 @@ export class OrgMode {
             }
         }
         return children;
-    }
-    
-    public expand() {
-        let doc = this.editor.document;
-        if (doc.languageId === 'orgmode') {
-            console.log('Expanding...');
-        }
     }
     
     public dispose() {
