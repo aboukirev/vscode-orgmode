@@ -20,9 +20,6 @@
         "commands": [{
             "command": "orgmode.navigate",
             "title": "OrgMode Navigate"
-        },{
-            "command": "orgmode.expand",
-            "title": "OrgMode Expand"
         }],
         "keybindings": [{
             "command": "orgmode.navigate",

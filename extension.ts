@@ -7,7 +7,7 @@ export function activate(ctx: ExtensionContext) {
 		orgmode.navigate();
 	}));
     
-    ctx.subscriptions.push(orgmode);
+    // ctx.subscriptions.push(orgmode);
 }
 
 // Construct a list of edits for a single checkbox toggle then execute all of them at once.  It's fast and can be undone in one step. 
@@ -17,20 +17,20 @@ interface IOrgmodeUpdate {
 }
 
 export class OrgMode {
-    private editor = window.activeTextEditor;
-    private doc = this.editor.document;
     private _updates: IOrgmodeUpdate[] = [];
 
     public navigate() {
+        let editor = window.activeTextEditor;
+        let doc = editor.document;
         // TODO: Is language check even necessary if language is part of activation event for the extension?
-        if (this.doc.languageId === 'orgmode') {
-            const selection = this.editor.selection;
-            let line = this.doc.lineAt(selection.active.line);
+        if (doc.languageId === 'orgmode') {
+            const selection = editor.selection;
+            let line = doc.lineAt(selection.active.line);
             let checkbox = this.findCheckbox(line, selection.active);
             let summary = this.findSummary(line, selection.active);
             this._updates = [];
             if (checkbox) {
-                let checked = this.doc.getText(checkbox) == ' ';
+                let checked = doc.getText(checkbox) == ' ';
                 let func = this.toggleCheckbox;
                 this.toggleCheckbox(checkbox, line, checked);
                 let parent = this.findParent(line);
@@ -48,13 +48,13 @@ export class OrgMode {
             // TODO: Test for link element [[]] and open browser with the specified link.
             // Apply updates accumulated thus far.
             let list = this._updates;
-            this.editor.edit(function(edit) {
+            editor.edit(function(edit) {
                 for (let upd of list)
                     edit.replace(upd.range, upd.text);
             }).then(() => {
                 // Reset selection after applying operations.
-                let selection = new Selection(this.editor.selection.active, this.editor.selection.active);
-                this.editor.selections = [selection]; 
+                let selection = new Selection(editor.selection.active, editor.selection.active);
+                editor.selections = [selection]; 
             });
         }
     }
@@ -96,7 +96,9 @@ export class OrgMode {
         if (!checkbox) {
             return;
         }
-        let checked = this.doc.getText(checkbox) != ' ';
+        let editor = window.activeTextEditor;
+        let doc = editor.document;
+        let checked = doc.getText(checkbox) != ' ';
         if (checked == check) {
             return;  // Nothing to do.
         }
@@ -128,10 +130,12 @@ export class OrgMode {
         }
         let checked = adjust;
         let chk = null;
+        let editor = window.activeTextEditor;
+        let doc = editor.document;
         for (let child of children) {
             chk = this.findCheckbox(child, null);
             if (chk) {
-                if (this.doc.getText(chk) != ' ') {
+                if (doc.getText(chk) != ' ') {
                     checked++;
                 }
             }
@@ -168,13 +172,15 @@ export class OrgMode {
         let indent = this.getIndent(line);
         let parent = null;
         let pindent = indent;
+        let editor = window.activeTextEditor;
+        let doc = editor.document;
         while (pindent >= indent) {
             lnum--;
             if (lnum < 0) {
                 return null;
             }
             
-            parent = this.doc.lineAt(lnum);
+            parent = doc.lineAt(lnum);
             pindent = this.getIndent(parent);
         }
         return parent;
@@ -184,14 +190,16 @@ export class OrgMode {
     private findChildren(line: TextLine): TextLine[] {
         let children: TextLine[] = [];
         let lnum = line.lineNumber;
-        let lmax = this.doc.lineCount - 1; 
+        let editor = window.activeTextEditor;
+        let doc = editor.document;
+        let lmax = doc.lineCount - 1; 
         let indent = this.getIndent(line);
         let child: TextLine = null;
         let cindent = indent;
         let next_indent = -1;
         while (lnum < lmax) {
             lnum++;
-            child = this.doc.lineAt(lnum);
+            child = doc.lineAt(lnum);
             cindent = this.getIndent(child);
             if (cindent <= indent) {
                 break;
