@@ -52,8 +52,13 @@ export class OrgMode {
             // Test for summary [/] element and update it.
             let summary = this.findSummary(line, selection.active);
             if (summary) {
-                // TODO: Walk immediate children, calculate total number and a number of checked items.
-                this.updateSummary(summary, 3, 12);
+                this._updates = [];
+                this.updateParent(line, 0);
+                let list = this._updates;
+                this.editor.edit(function(edit) {
+                    for (let upd of list)
+                        edit.replace(upd.range, upd.text);
+                });
                 return;
             }
             // TODO: Test for reference {} or {{}} element and navigate.
