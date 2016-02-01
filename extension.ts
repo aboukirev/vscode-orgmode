@@ -42,6 +42,10 @@ export class OrgMode {
                 let func = this.toggleCheckbox;
                 this._updates = [];
                 this.toggleCheckbox(checkbox, line, checked);
+                let parent = this.findParent(line);
+                // Since the updates as a result of toggle have not happened yet in the editor, counting checked children is going to use old value of current checkbox.  Hence the adjustment.
+                // TODO: Consider a different approach later.  I don't want to commit toggle edits before updating summary because it will split edit into multiple operations thus requiring multiple undo's to rollback.
+                this.updateParent(parent, checked ? 1 : -1);
                 let list = this._updates;
                 this.editor.edit(function(edit) {
                     for (let upd of list)
@@ -75,10 +79,12 @@ export class OrgMode {
         let match = re.exec(line.text);
         if (match) {
             let range = new Range(line.lineNumber, match.index + 1, line.lineNumber, match.index + 2);
-            if (!position)
+            if (!position) {
                 return range;
-            if (range.contains(position))
+            }
+            if (range.contains(position)) {
                 return range;
+            }
         }
         return null;
     }
@@ -88,24 +94,60 @@ export class OrgMode {
         let match = re.exec(line.text);
         if (match) {
             let range = new Range(line.lineNumber, match.index + 1, line.lineNumber, match.index + match[1].length - 1);
-            if (!position)
+            if (!position) {
                 return range;
-            if (range.contains(position))
+            }
+            if (range.contains(position)) {
                 return range;
+            }
         }
         return null;
     }
     
     // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
-    private toggleCheckbox(checkbox: Range, line: TextLine, checked: boolean) {
-        if (!checkbox)
+    private toggleCheckbox(checkbox: Range, line: TextLine, check: boolean) {
+        if (!checkbox) {
             return;
-        this._updates.push({ range: checkbox, text: (checked ? 'X' : ' ')});
+        }
+        let checked = this.doc.getText(checkbox) != ' ';
+        if (checked == check) {
+            return;  // Nothing to do.
+        }
+        this._updates.push({ range: checkbox, text: (check ? 'X' : ' ')});
         let children = this.findChildren(line);
         let child: TextLine = null;
         for (child of children) {
-            this.toggleCheckbox(this.findCheckbox(child, null), child, checked);
+            this.toggleCheckbox(this.findCheckbox(child, null), child, check);
         }
+    }
+    
+    private updateParent(line: TextLine, adjust: number) {
+        if (!line) {
+            return;
+        }
+        let children = this.findChildren(line);
+        let total = children.length;
+        if (total == 0) {
+            return;
+        }
+        let summary = this.findSummary(line, null);
+        if (!summary) {
+            return;
+        }
+        let checked = adjust;
+        let chk = null;
+        for (let child of children) {
+            chk = this.findCheckbox(child, null);
+            if (chk) {
+                if (this.doc.getText(chk) != ' ') {
+                    checked++;
+                }
+            }
+        }
+        this.updateSummary(summary, checked, total);
+        // TODO: If there is a checkbox on this line, update it depending on (checked == total).
+        chk = this.findCheckbox(line, null);
+        this.toggleCheckbox(chk, line, checked == total);
     }
     
     private updateSummary(summary: Range, checked: number, total: number) {
