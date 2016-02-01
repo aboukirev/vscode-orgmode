@@ -114,6 +114,9 @@ export class OrgMode {
             return;  // Nothing to do.
         }
         this._updates.push({ range: checkbox, text: (check ? 'X' : ' ')});
+        if (!line) {
+            return;
+        }
         let children = this.findChildren(line);
         let child: TextLine = null;
         for (child of children) {
@@ -130,10 +133,6 @@ export class OrgMode {
         if (total == 0) {
             return;
         }
-        let summary = this.findSummary(line, null);
-        if (!summary) {
-            return;
-        }
         let checked = adjust;
         let chk = null;
         for (let child of children) {
@@ -144,15 +143,18 @@ export class OrgMode {
                 }
             }
         }
+        let summary = this.findSummary(line, null);
         this.updateSummary(summary, checked, total);
-        // TODO: If there is a checkbox on this line, update it depending on (checked == total).
+        // If there is a checkbox on this line, update it depending on (checked == total).
         chk = this.findCheckbox(line, null);
-        this.toggleCheckbox(chk, line, checked == total);
+        // Prevent propagation downstream by passing line = null.
+        this.toggleCheckbox(chk, null, checked == total);
     }
     
     private updateSummary(summary: Range, checked: number, total: number) {
-        if (!summary)
+        if (!summary) {
             return;
+        }
         this._updates.push({ range: summary, text: (checked.toString() + '/' + total.toString())});
     }
     
