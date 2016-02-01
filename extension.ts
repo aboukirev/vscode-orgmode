@@ -1,9 +1,6 @@
 import {window, workspace, commands, Disposable, ExtensionContext, TextDocument, TextLine, Range, Position, Selection, TextEditorEdit} from 'vscode';
 
 export function activate(ctx: ExtensionContext) {
-
-    console.log('Congratulations, your extension "OrgMode" is now active!');
-    
     let orgmode = new OrgMode();
 
 	ctx.subscriptions.push(commands.registerCommand('orgmode.navigate', () => {
