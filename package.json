@@ -25,7 +25,11 @@
             "command": "orgmode.navigate",
             "key": "enter",
             "when": "editorTextFocus && editorLangId == 'orgmode'"
-        }] 
+        }], 
+		"snippets": [{
+			"language": "orgmode",
+			"path": "./snippets/orgmode.json"
+		}]
 	},
     "activationEvents": [
         "onLanguage:orgmode"
