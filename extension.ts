@@ -16,6 +16,11 @@ interface IOrgmodeUpdate {
     text: string;
 }
 
+interface IExternalLink {
+    range: Range;
+    url: string;
+}
+
 export class OrgMode {
     private _updates: IOrgmodeUpdate[] = [];
 
@@ -28,6 +33,7 @@ export class OrgMode {
             let line = doc.lineAt(selection.active.line);
             let checkbox = this.findCheckbox(line, selection.active);
             let summary = this.findSummary(line, selection.active);
+            let extlink = this.findExternalLink(line, selection.active);
             this._updates = [];
             if (checkbox) {
                 let checked = doc.getText(checkbox) == ' ';
@@ -38,6 +44,10 @@ export class OrgMode {
                 this.updateParent(parent, checked ? 1 : -1);
             } else if (summary) {
                 this.updateParent(line, 0);
+            } else if (extlink) {
+                this.launchExternalLink(extlink);
+                // No text change or movement in the editor.  Exit.
+                return;
             } else {
                 // Fallback to just editing text, i.e. process `enter` key.
                 // The following will translate to proper line ending automatically.
@@ -45,7 +55,6 @@ export class OrgMode {
             }
             
             // TODO: Test for reference {} or {{}} element and navigate.
-            // TODO: Test for link element [[]] and open browser with the specified link.
             // Apply updates accumulated thus far.
             let list = this._updates;
             editor.edit(function(edit) {
@@ -89,6 +98,28 @@ export class OrgMode {
             }
         }
         return null;
+    }
+    
+    private findExternalLink(line: TextLine, position: Position): IExternalLink {
+        let re = new RegExp(`\\[\\[(.+?)?\\]([^\\[\\]:\\n]*)\\]`);
+        let match = re.exec(line.text);
+        if (match) {
+            let extlink = { 
+                range: new Range(line.lineNumber, match.index + 2, line.lineNumber, match.index + match[0].length - 3),
+                url: match[1]
+            };
+            if (!position) {
+                return extlink;
+            }
+            if (extlink.range.contains(position)) {
+                return extlink;
+            }
+        }
+        return null;
+    }
+    
+    private launchExternalLink(extlink: IExternalLink) {
+        console.log(extlink.url);
     }
     
     // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
