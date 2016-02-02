@@ -24,7 +24,7 @@
         "keybindings": [{
             "command": "orgmode.navigate",
             "key": "enter",
-            "when": "editorTextFocus"
+            "when": "editorTextFocus && editorLangId == 'orgmode'"
         }] 
 	},
     "activationEvents": [

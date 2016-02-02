@@ -6,8 +6,6 @@ export function activate(ctx: ExtensionContext) {
 	ctx.subscriptions.push(commands.registerCommand('orgmode.navigate', () => {
 		orgmode.navigate();
 	}));
-    
-    // ctx.subscriptions.push(orgmode);
 }
 
 // Construct a list of edits for a single checkbox toggle then execute all of them at once.  It's fast and can be undone in one step. 
@@ -27,45 +25,42 @@ export class OrgMode {
     public navigate() {
         let editor = window.activeTextEditor;
         let doc = editor.document;
-        // TODO: Is language check even necessary if language is part of activation event for the extension?
-        if (doc.languageId === 'orgmode') {
-            const selection = editor.selection;
-            let line = doc.lineAt(selection.active.line);
-            let checkbox = this.findCheckbox(line, selection.active);
-            let summary = this.findSummary(line, selection.active);
-            let extlink = this.findExternalLink(line, selection.active);
-            this._updates = [];
-            if (checkbox) {
-                let checked = doc.getText(checkbox) == ' ';
-                let func = this.toggleCheckbox;
-                this.toggleCheckbox(checkbox, line, checked);
-                let parent = this.findParent(line);
-                // Since the updates as a result of toggle have not happened yet in the editor, counting checked children is going to use old value of current checkbox.  Hence the adjustment.
-                this.updateParent(parent, checked ? 1 : -1);
-            } else if (summary) {
-                this.updateParent(line, 0);
-            } else if (extlink) {
-                this.launchExternalLink(extlink);
-                // No text change or movement in the editor.  Exit.
-                return;
-            } else {
-                // Fallback to just editing text, i.e. process `enter` key.
-                // The following will translate to proper line ending automatically.
-                this._updates.push({ range: new Range(selection.active, selection.active), text: '\n' });
-            }
-            
-            // TODO: Test for reference {} or {{}} element and navigate.
-            // Apply updates accumulated thus far.
-            let list = this._updates;
-            editor.edit(function(edit) {
-                for (let upd of list)
-                    edit.replace(upd.range, upd.text);
-            }).then(() => {
-                // Reset selection after applying operations.
-                let selection = new Selection(editor.selection.active, editor.selection.active);
-                editor.selections = [selection]; 
-            });
+        const selection = editor.selection;
+        let line = doc.lineAt(selection.active.line);
+        let checkbox = this.findCheckbox(line, selection.active);
+        let summary = this.findSummary(line, selection.active);
+        let extlink = this.findExternalLink(line, selection.active);
+        this._updates = [];
+        if (checkbox) {
+            let checked = doc.getText(checkbox) == ' ';
+            let func = this.toggleCheckbox;
+            this.toggleCheckbox(checkbox, line, checked);
+            let parent = this.findParent(line);
+            // Since the updates as a result of toggle have not happened yet in the editor, counting checked children is going to use old value of current checkbox.  Hence the adjustment.
+            this.updateParent(parent, checked ? 1 : -1);
+        } else if (summary) {
+            this.updateParent(line, 0);
+        } else if (extlink) {
+            this.launchExternalLink(extlink);
+            // No text change or movement in the editor.  Exit.
+            return;
+        } else {
+            // Fallback to just editing text, i.e. process `enter` key.
+            // The following will translate to proper line ending automatically.
+            this._updates.push({ range: new Range(selection.active, selection.active), text: '\n' });
         }
+        
+        // TODO: Test for reference {} or {{}} element and navigate.
+        // Apply updates accumulated thus far.
+        let list = this._updates;
+        editor.edit(function(edit) {
+            for (let upd of list)
+                edit.replace(upd.range, upd.text);
+        }).then(() => {
+            // Reset selection after applying operations.
+            let selection = new Selection(editor.selection.active, editor.selection.active);
+            editor.selections = [selection]; 
+        });
     }
     
     // Find first checkbox pattern on the specified line.
