@@ -30,6 +30,7 @@ export class OrgMode {
         let checkbox = this.findCheckbox(line, selection.active);
         let summary = this.findSummary(line, selection.active);
         let extlink = this.findExternalLink(line, selection.active);
+        let reference = this.findReference(line, selection.active);
         this._updates = [];
         if (checkbox) {
             let checked = doc.getText(checkbox) == ' ';
@@ -43,6 +44,9 @@ export class OrgMode {
         } else if (extlink) {
             this.launchExternalLink(extlink);
             // No text change or movement in the editor.  Exit.
+            return;
+        } else if (reference) {
+            this.jumpReference(reference);
             return;
         } else {
             // Fallback to just editing text, i.e. process `enter` key.
@@ -111,6 +115,48 @@ export class OrgMode {
             }
         }
         return null;
+    }
+    
+    private findReference(line: TextLine, position: Position): Range {
+        let re = new RegExp(`\\{(\\d+|\\{(.+?)\\})\\}`, 'g');
+        let text = line.text;
+        let match = re.exec(text);
+        while (match) {
+            let range = new Range(line.lineNumber, match.index, line.lineNumber, match.index + match[0].length);
+            if (!position) {
+                return range;
+            }
+            if (range.contains(position)) {
+                return range;
+            }
+            match = re.exec(text);
+        }
+        return null;
+    }
+    
+    private jumpReference(reference: Range) {
+        if (!reference) {
+            return;
+        }
+        let editor = window.activeTextEditor;
+        let token = editor.document.getText(reference);
+        if (token.startsWith('{{')) {
+            token = '* ' + token.substr(2, token.length - 4);
+        }
+        // The following is possibly duplicating the entire document text just for search purpose.
+        let text = editor.document.getText();
+        let offset = editor.document.offsetAt(editor.selection.active);
+        let pos = text.indexOf(token, offset);
+        // Retry from the start of the file if no found from the current position in the middle of the file.
+        if (pos < 0 && offset > 0) {
+            pos = text.indexOf(token, 0);
+        }
+        if (pos >= 0) {
+            let active = editor.document.positionAt(pos + 1);
+            let selection = new Selection(active, active);
+            editor.selections = [selection]; 
+            editor.revealRange(selection);
+        }
     }
     
     private launchExternalLink(extlink: IExternalLink) {

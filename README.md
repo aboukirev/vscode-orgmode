@@ -1,7 +1,7 @@
 # vscode-orgmode
 orgmode implementation for VSCode, along the lines of orgmode for SublimeText.
 
-Learning VSCode extensions API and Typescript at the same time.  Basic syntax scopes/highlight works.  Toggling checkboxes and updating summaries in hierarchical lists works. References and external links are coming.
+Learning VSCode extensions API and Typescript at the same time.  Basic syntax scopes/highlight works.  Toggling checkboxes and updating summaries in hierarchical lists works. Jumping through internal references is functional.  Hitting `Enter` on an external link logs to console and does nothing else.  Eventually it will start browser with the specified URL (open/start/xdg-open depending on platform) or will try to do something like `Open preview` for Markdown.
 
 Make sure to `npm install` to pull all the required node modules.  Open folder in VSCode and hit F5 to get extension running in debug mode.  Select OrgMode language for the untitled document and start experimenting.
 
