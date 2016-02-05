@@ -54,7 +54,6 @@ export class OrgMode {
             this._updates.push({ range: new Range(selection.active, selection.active), text: '\n' });
         }
         
-        // TODO: Test for reference {} or {{}} element and navigate.
         // Apply updates accumulated thus far.
         let list = this._updates;
         editor.edit(function(edit) {
