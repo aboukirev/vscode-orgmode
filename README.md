@@ -7,13 +7,13 @@ Make sure to `npm install` to pull all the required node modules.  Open folder i
 
 The orgmode activates on files with `.org` and `.tasks` extensions but you can also apply it manually.
 
-** What already works **
+## What already works
 - Basic syntax highlight
 - Checkboxes and summaries in hierarchical lists
 - Jumping through internal references
 - Hitting `Enter` on an external link logs to console (proof of concept) 
 
-** Things I want to implement **
+## Things I want to implement
 - Some refactoring of the extension code: interfaces and structures, reusing active editor and document proper, etc.
 - Add more snippets.
 - For external links start browser with the specified URL (open/start/xdg-open depending on platform) or do something like `Open preview` for Markdown.
