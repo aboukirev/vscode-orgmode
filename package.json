@@ -8,7 +8,7 @@
         "url": "https://github.com/aboukirev/vscode-orgmode.git"
     },
 	"engines": { 
-        "vscode": "0.11.x" 
+        "vscode": "0.10.x" 
     },
 	"contributes": {
 		"languages": [{
@@ -47,6 +47,6 @@
     },
     "devDependencies": {
         "typescript": "^1.6.2",
-        "vscode": "0.11.x"
+        "vscode": "0.10.x"
     }
 }
