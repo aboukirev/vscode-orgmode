@@ -7,6 +7,8 @@ Make sure to `npm install` to pull all the required node modules.  Open folder i
 
 The orgmode activates on files with `.org` and `.tasks` extensions but you can also apply it manually.
 
+At this point I decided to abandon this experiment.  I now have [vscode-checklist](https://github.com/aboukirev/vscode-checklist) project that satisfies my needs for check-lists.
+
 ## What already works
 - Basic syntax highlight
 - Checkboxes and summaries in hierarchical lists
