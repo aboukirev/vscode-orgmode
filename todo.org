@@ -1,0 +1,17 @@
+* Bugs [/]
+  - [ ] When this item becomes checked after ticking both child items the summary above is not updated
+    - [ ] 1st child item
+    - [ ] 2nd child item
+
+* Development [/]
+  - [ ] VSCode can open URLs internally: use that for external links
+  - [ ] See how rendering is done for Markdown and ReST
+  - [ ] Investigate folding 
+
+* Maintenance [/]
+  - [ ] Create project icon/image
+  - [ ] Complete missing items in `project.json`
+  - [ ] Bring all dependencies up-to-updated
+  - [ ] Revise `README.md`
+  - [ ] Add installation instructions
+  - [ ] Package and publish extension
