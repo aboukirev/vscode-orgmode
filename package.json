@@ -1,6 +1,11 @@
 {
 	"name": "orgmode",
+    "displayName": "OrgMode",
 	"version": "0.1.0",
+    "author": {
+        "name": "Alexei Boukirev",
+        "email": "aboukirev@gmail.com"
+    },
 	"publisher": "aboukirev",
     "license": "MIT",
     "repository": {
