@@ -163,19 +163,19 @@ export class OrgMode {
     }
     
     // Perform the toggle.  'x' or 'X' becomes blank and blank becomes 'X'.
-    private toggleCheckbox(checkbox: Range, line: TextLine, check: boolean) {
+    private toggleCheckbox(checkbox: Range, line: TextLine, check: boolean): number {
         if (!checkbox) {
-            return;
+            return 0;
         }
         let editor = window.activeTextEditor;
         let doc = editor.document;
         let checked = doc.getText(checkbox) != ' ';
         if (checked == check) {
-            return;  // Nothing to do.
+            return 0;  // Nothing to do.
         }
         this._updates.push({ range: checkbox, text: (check ? 'X' : ' ')});
         if (!line) {
-            return;
+            return check ? 1 : -1;
         }
         let children = this.findChildren(line);
         let child: TextLine = null;
@@ -186,6 +186,7 @@ export class OrgMode {
         let total = check ? children.length : 0;
         let summary = this.findSummary(line, null);
         this.updateSummary(summary, total, total);
+        return check ? 1 : -1;
     }
     
     // Update checkbox and summary on this line.  Adjust checked items count with an additional offset.  That accounts for 
@@ -216,7 +217,11 @@ export class OrgMode {
         // If there is a checkbox on this line, update it depending on (checked == total).
         chk = this.findCheckbox(line, null);
         // Prevent propagation downstream by passing line = null.
-        this.toggleCheckbox(chk, null, checked == total);
+        let delta = this.toggleCheckbox(chk, null, checked == total);
+        // Recursively update parent nodes
+        let parent = this.findParent(line);
+        // Since the updates as a result of toggle have not happened yet in the editor, counting checked children is going to use old value of current checkbox.  Hence the adjustment.
+        this.updateParent(parent, delta);
     }
     
     private updateSummary(summary: Range, checked: number, total: number) {
